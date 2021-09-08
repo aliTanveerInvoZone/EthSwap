@@ -7,15 +7,24 @@ import {Text, View, SafeAreaView, Alert} from 'react-native';
 import {Header} from './src/Components/header';
 import Token from './src/abis/Token.json';
 import EthSwap from './src/abis/EthSwap.json';
-import {inheritInnerComments} from '@babel/types';
 import {Main} from './src/Components/Main';
+
+import HDWalletProvider from '@truffle/hdwallet-provider';
+import {identifier} from '@babel/types';
+
+const MNEMONIC =
+  'split axis exist miracle have input kite stock laugh govern property call';
 const App: React.FC = () => {
   const [account, setAccount] = React.useState('');
   const [ethBalance, setEthBalance] = useState('');
   const [tokenContract, setTokenContract] = useState({});
   const [tokenBalance, setTokenBalance] = useState('');
   const [ethSwapContract, setEthSwapContract] = useState({});
-
+  var hdWalletProvider = new HDWalletProvider(
+    MNEMONIC,
+    'wss://ropsten.infura.io/ws/v3/e55d95fe5dfd4191b0ea5769dc6bf515',
+  );
+  var web3 = new Web3(hdWalletProvider);
   useEffect(() => {
     const init = async () => {
       await loadBlockChainData();
@@ -24,14 +33,18 @@ const App: React.FC = () => {
   }, []);
 
   async function loadBlockChainData() {
-    let web3 = new Web3('http://127.0.0.1:7545'); // Init Web3 Block Chain
+    console.log('web3', web3.eth.accounts.wallet);
+    // Init Web3 Block Chain
 
     let accounts = await web3.eth.getAccounts();
+    console.log('Private key of wallet ====> ', accounts);
     let balance = await web3.eth.getBalance(accounts[0]);
+    console.log('balance', balance);
     // Fetching the default account
     setAccount(accounts[0]);
     setEthBalance(balance);
     const networkId = await web3.eth.net.getId();
+    console.log(networkId);
     const tokenData = Token.networks[networkId];
     // Init Token Contract
     if (tokenData) {
@@ -65,16 +78,19 @@ const App: React.FC = () => {
       .buyTokens()
       .send({value: value, from: account})
       .on('transactionHash', async hash => {
-        console.log('hash buyTokens ', hash);
-        loadBlockChainData();
+        if (hash) {
+          console.log('transactionHash', hash);
+          await loadBlockChainData();
+        }
       });
   }
   async function sellTokens(value: string) {
     tokenContract.methods
       .approve(ethSwapContract._address, value)
       .send({from: account})
-      .on('transactionHash', hash => {
-        ethSwapContract.methods
+      .on('transactionHash', async hash => {
+        console.log('transactionHash===>', hash);
+        await ethSwapContract.methods
           .sellTokens(value)
           .send({from: account})
           .on('transactionHash', async hash => {
