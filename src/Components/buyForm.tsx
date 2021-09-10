@@ -27,9 +27,12 @@ export const BuyForm: React.FC<Props> = ({
           alignItems: 'center',
           paddingVertical: 20,
         }}>
-        <Text style={{fontWeight: 'bold', fontSize: 18}}>
+        <Text
+          numberOfLines={1}
+          ellipsizeMode={'tail'}
+          style={{fontWeight: 'bold', fontSize: 15}}>
           {'Input Balance = ' +
-            Web3.utils.fromWei(ethBalance, 'Ether') +
+            parseFloat(Web3.utils.fromWei(ethBalance, 'Ether')).toFixed(2) +
             ' Ethers'}
         </Text>
         <TextInput
@@ -55,7 +58,7 @@ export const BuyForm: React.FC<Props> = ({
           alignItems: 'center',
           paddingVertical: 20,
         }}>
-        <Text style={{fontWeight: 'bold', fontSize: 18}}>
+        <Text style={{fontWeight: 'bold', fontSize: 15}}>
           {'Output Balance = ' +
             Web3.utils.fromWei(tokenBalance, 'Ether') +
             ' Tokens'}

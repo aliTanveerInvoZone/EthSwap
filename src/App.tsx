@@ -1,16 +1,16 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import './shim';
+import '../shim';
 import Web3 from 'web3';
-import './shim';
+import '../shim';
 import React, {useEffect, useState} from 'react';
-import {Text, View, SafeAreaView, Alert} from 'react-native';
-import {Header} from './src/Components/header';
-import Token from './src/abis/Token.json';
-import EthSwap from './src/abis/EthSwap.json';
-import {Main} from './src/Components/Main';
-import {Loader} from './src/Components/loader';
-
+import {Alert, SafeAreaView} from 'react-native';
+import {Header} from './Components/header';
+import Token from './abis/Token.json';
+import EthSwap from './abis/EthSwap.json';
+import {Main} from './Components/Main';
+import {Loader} from './Components/loader';
 import HDWalletProvider from '@truffle/hdwallet-provider';
+import {PRIVATE_KEYS, PROVIDER} from './constants';
 
 function App() {
   const [account, setAccount] = useState('');
@@ -19,13 +19,10 @@ function App() {
   const [tokenBalance, setTokenBalance] = useState('');
   const [ethSwapContract, setEthSwapContract] = useState('');
   const [loader, setLoader] = useState(false);
-  const privateKey = [
-    'e8862a89dcd4a0dba199679f06f76bdb02b9f80c0241a7efde545034d54b12c9',
-  ];
+
   var hdWalletProvider = new HDWalletProvider({
-    privateKeys: privateKey,
-    providerOrUrl:
-      'wss://rinkeby.infura.io/ws/v3/b2cd755f7efc4b6090ece72c55f77bdd',
+    privateKeys: PRIVATE_KEYS,
+    providerOrUrl: PROVIDER,
     numberOfAddresses: 1,
   });
   var web3 = new Web3(hdWalletProvider);
@@ -38,44 +35,41 @@ function App() {
   }, []);
 
   async function loadBlockChainData() {
-    // Init Web3 Block Chain
-    console.log('Load Block Data ===> ');
+    console.log('Load Block Data ===> '); // Init Web3 Block Chain
     let accounts = await web3.eth.getAccounts();
     console.log('Accounts Address ====> ', accounts);
     let balance = await web3.eth.getBalance(accounts[0]); // Fetching the default account
+
     console.log('Account balance ====>', balance);
     setAccount(accounts[0]);
     setEthBalance(balance);
-
     const networkId = await web3.eth.net.getId();
     console.log('Network ID ====>', networkId);
-
     if (!tokenContract) {
       const tokenData = Token.networks[networkId];
       if (tokenData) {
-        const token = await new web3.eth.Contract(Token.abi, tokenData.address);
+        const token = new web3.eth.Contract(Token.abi, tokenData.address);
         setTokenContract(token);
-        const tokenBalance = await token.methods.balanceOf(accounts[0]).call(); // Fetching Token Balance
+        const tokenBalanceValue = await token.methods
+          .balanceOf(accounts[0])
+          .call(); // Fetching Token Balance
         console.log('tokenBalance', tokenBalance);
-        setTokenBalance(tokenBalance);
+        setTokenBalance(tokenBalanceValue);
       } else {
         alert('Token is not Deployed to Network');
       }
     } else {
-      const tokenBalance = await tokenContract.methods
+      const tokenBalanceValue = await tokenContract.methods
         .balanceOf(accounts[0])
         .call(); // Fetching Token Balance
-      console.log('tokenBalance', tokenBalance);
-      setTokenBalance(tokenBalance);
+      console.log('tokenBalance', tokenBalanceValue);
+      setTokenBalance(tokenBalanceValue);
     }
 
     if (!ethSwapContract) {
       const ethSwapData = EthSwap.networks[networkId];
       if (ethSwapData) {
-        const ethSwap = await new web3.eth.Contract(
-          EthSwap.abi,
-          ethSwapData.address,
-        );
+        const ethSwap = new web3.eth.Contract(EthSwap.abi, ethSwapData.address);
         setEthSwapContract(ethSwap);
       } else {
         alert('EthSwap contract not deployed to network');
@@ -89,7 +83,7 @@ function App() {
     await ethSwapContract.methods
       .buyTokens()
       .send({value: value, from: account})
-      .on('transactionHash', async hash => {
+      .on('transactionHash', async (hash: any) => {
         console.log('buyTokens transaction Hash ===>', hash);
       })
       .on('confirmation', async (confirmation: number, receipt: any) => {
@@ -99,7 +93,7 @@ function App() {
           await loadBlockChainData();
         }
       })
-      .on('error', err => {
+      .on('error', (err: any) => {
         setLoader(false);
         console.log('Buy Tokens err', err);
       });
@@ -109,23 +103,30 @@ function App() {
     tokenContract.methods
       .approve(ethSwapContract._address, value)
       .send({from: account})
-      .on('transactionHash', async hash => {
+      .on('transactionHash', async (hash: any) => {
         console.log('transactionHash===>', hash);
       })
-      .on('confirmation', async (confirmation: Number, receipt: any) => {
-        if (confirmation === 0) {
+      .on('confirmation', async (approvedConfirmation: Number) => {
+        if (approvedConfirmation === 0) {
           await ethSwapContract.methods
             .sellTokens(value)
             .send({from: account})
-            .on('transactionHash', async hash => {
+            .on('transactionHash', async (hash: any) => {
               console.log('hash', hash);
             })
-            .on('confirmation', async (confirmation: Number, receipt: any) => {
-              if (confirmation === 0) {
-                setLoader(false);
-                alert('Transaction Successful' + receipt.transactionHash);
-                await loadBlockChainData();
-              }
+            .on(
+              'confirmation',
+              async (sellConfirmation: Number, receipt: any) => {
+                if (sellConfirmation === 0) {
+                  setLoader(false);
+                  alert('Transaction Successful' + receipt.transactionHash);
+                  await loadBlockChainData();
+                }
+              },
+            )
+            .on('error', (err: any) => {
+              alert(err);
+              setLoader(false);
             });
         }
       });

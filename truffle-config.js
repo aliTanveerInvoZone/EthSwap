@@ -1,11 +1,6 @@
 var HDWalletProvider = require('@truffle/hdwallet-provider');
+var {PRIVATE_KEYS, HTTP_PROVIDER} = require('./src/constants');
 
-const MNEMONIC =
-  'split axis exist miracle have input kite stock laugh govern property call';
-
-const privateKey = [
-  'e8862a89dcd4a0dba199679f06f76bdb02b9f80c0241a7efde545034d54b12c9',
-];
 module.exports = {
   networks: {
     development: {
@@ -16,9 +11,8 @@ module.exports = {
     rinkeby: {
       provider: function () {
         return new HDWalletProvider({
-          privateKeys: privateKey,
-          providerOrUrl:
-            'https://rinkeby.infura.io/v3/b2cd755f7efc4b6090ece72c55f77bdd',
+          privateKeys: PRIVATE_KEYS,
+          providerOrUrl: HTTP_PROVIDER,
           numberOfAddresses: 1,
         });
       },
